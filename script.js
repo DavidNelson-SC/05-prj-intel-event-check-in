@@ -1,39 +1,52 @@
 //Get all needed DOM elements
-const form = document.getElementById('checkInForm');
-const nameInput = document.getElementById('attendeeName');
-const teamSelect = document.getElementById('teamSelect');
+const form = document.getElementById("checkInForm");
+const nameInput = document.getElementById("attendeeName");
+const teamSelect = document.getElementById("teamSelect");
+const greeting = document.getElementById("greeting");
+const attendeeCount = document.getElementById("attendeeCount");
+const progressBar = document.getElementById("progressBar");
+const attendeeList = document.getElementById("attendeeList");
 
 //Track attendance
 let count = 0;
 const maxCount = 50;
+const checkedInAttendees = [];
 
 //handle form submission
-form.addEventListener("submit", function(event) {
-    event.preventDefault(); 
+form.addEventListener("submit", function (event) {
+  event.preventDefault();
 
-    //Get values from form
-    const name = nameInput.value;
-    const team = teamSelect.value;
-    const teamName = teamSelect.options[0].text;
+  //Get values from form
+  const name = nameInput.value.trim();
+  const team = teamSelect.value;
+  const teamName = teamSelect.options[teamSelect.selectedIndex].text;
 
-    console.log(name, teamName);
+  if (!name || !team) {
+    return;
+  }
 
-    //Increment count
-    count++
-    console.log("Total check-ins: " + count);
+  checkedInAttendees.push(name);
 
-    //Update progress bar
-    const percentage = Math.round((count/maxCount) * 100) + "%";
-    console.log('Progress: ' + percentage);
+  //Increment count
+  count++;
+  attendeeCount.textContent = count;
 
-    // Update team counter
-    const teamCounter = document.getElementById(team + "Count");
-    teamCounter.textContent = parseInt(teamCounter.textContent) + 1;
+  //Update progress bar
+  const percentage = Math.min(Math.round((count / maxCount) * 100), 100);
+  progressBar.style.width = `${percentage}%`;
 
-    //Show welcome message
-    const message = `🎉Welcome, ${name} from ${teamName}`;
-    console.log(message);
+  // Update team counter
+  const teamCounter = document.getElementById(team + "Count");
+  teamCounter.textContent = parseInt(teamCounter.textContent) + 1;
 
-    form.reset();
+  //Show welcome message and add attendee to list
+  const message = `🎉 Welcome, ${name} from ${teamName}!`;
+  greeting.textContent = message;
+
+  const attendeeListItem = document.createElement("li");
+  attendeeListItem.textContent = `${name} — ${teamName}`;
+  attendeeList.appendChild(attendeeListItem);
+
+  form.reset();
 });
 
