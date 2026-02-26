@@ -6,11 +6,23 @@ const greeting = document.getElementById("greeting");
 const attendeeCount = document.getElementById("attendeeCount");
 const progressBar = document.getElementById("progressBar");
 const attendeeList = document.getElementById("attendeeList");
+const waterCount = document.getElementById("waterCount");
+const zeroCount = document.getElementById("zeroCount");
+const powerCount = document.getElementById("powerCount");
 
 //Track attendance
-let count = 0;
 const maxCount = 50;
-const checkedInAttendees = [];
+const storageKey = "intelCheckInData";
+
+const teamLabels = {
+  water: "Team Water Wise",
+  zero: "Team Net Zero",
+  power: "Team Renewables",
+};
+
+let attendanceData = loadAttendanceData();
+
+renderAll();
 
 //handle form submission
 form.addEventListener("submit", function (event) {
@@ -25,28 +37,163 @@ form.addEventListener("submit", function (event) {
     return;
   }
 
-  checkedInAttendees.push(name);
+  //Increment totals
+  attendanceData.count = attendanceData.count + 1;
+  attendanceData.teams[team] = attendanceData.teams[team] + 1;
+  attendanceData.attendees.push({
+    name: name,
+    team: team,
+    teamName: teamName,
+  });
 
-  //Increment count
-  count++;
-  attendeeCount.textContent = count;
+  saveAttendanceData();
+  renderAll();
 
-  //Update progress bar
-  const percentage = Math.min(Math.round((count / maxCount) * 100), 100);
-  progressBar.style.width = `${percentage}%`;
+  //Show greeting and celebration when goal is reached
+  if (attendanceData.count >= maxCount) {
+    const winningTeam = getWinningTeam();
+    greeting.textContent = `🎉 Goal reached! ${winningTeam.name} is leading with ${winningTeam.count} attendees.`;
+  } else {
+    greeting.textContent = `✅ Welcome, ${name} from ${teamName}!`;
+  }
 
-  // Update team counter
-  const teamCounter = document.getElementById(team + "Count");
-  teamCounter.textContent = parseInt(teamCounter.textContent) + 1;
-
-  //Show welcome message and add attendee to list
-  const message = `🎉 Welcome, ${name} from ${teamName}!`;
-  greeting.textContent = message;
-
-  const attendeeListItem = document.createElement("li");
-  attendeeListItem.textContent = `${name} — ${teamName}`;
-  attendeeList.appendChild(attendeeListItem);
+  greeting.style.display = "block";
+  greeting.classList.add("success-message");
 
   form.reset();
 });
+
+function renderAll() {
+  renderTotals();
+  renderAttendeeList();
+
+  if (attendanceData.count >= maxCount) {
+    const winningTeam = getWinningTeam();
+    greeting.textContent = `🎉 Goal reached! ${winningTeam.name} is leading with ${winningTeam.count} attendees.`;
+    greeting.style.display = "block";
+    greeting.classList.add("success-message");
+  }
+}
+
+function renderTotals() {
+  attendeeCount.textContent = attendanceData.count;
+  waterCount.textContent = attendanceData.teams.water;
+  zeroCount.textContent = attendanceData.teams.zero;
+  powerCount.textContent = attendanceData.teams.power;
+
+  const percentage = Math.min(
+    Math.round((attendanceData.count / maxCount) * 100),
+    100,
+  );
+  progressBar.style.width = `${percentage}%`;
+}
+
+function renderAttendeeList() {
+  attendeeList.innerHTML = "";
+
+  if (attendanceData.attendees.length === 0) {
+    const emptyItem = document.createElement("li");
+    emptyItem.className = "attendee-empty";
+    emptyItem.textContent = "No attendees checked in yet.";
+    attendeeList.appendChild(emptyItem);
+    return;
+  }
+
+  for (let i = 0; i < attendanceData.attendees.length; i++) {
+    const attendee = attendanceData.attendees[i];
+    const attendeeItem = document.createElement("li");
+    attendeeItem.className = "attendee-item";
+    attendeeItem.textContent = `${attendee.name} — ${attendee.teamName}`;
+    attendeeList.appendChild(attendeeItem);
+  }
+}
+
+function getWinningTeam() {
+  let winningTeamKey = "water";
+  let winningTeamCount = attendanceData.teams.water;
+
+  if (attendanceData.teams.zero > winningTeamCount) {
+    winningTeamKey = "zero";
+    winningTeamCount = attendanceData.teams.zero;
+  }
+
+  if (attendanceData.teams.power > winningTeamCount) {
+    winningTeamKey = "power";
+    winningTeamCount = attendanceData.teams.power;
+  }
+
+  return {
+    key: winningTeamKey,
+    name: teamLabels[winningTeamKey],
+    count: winningTeamCount,
+  };
+}
+
+function saveAttendanceData() {
+  localStorage.setItem(storageKey, JSON.stringify(attendanceData));
+}
+
+function loadAttendanceData() {
+  const defaultData = {
+    count: 0,
+    teams: {
+      water: 0,
+      zero: 0,
+      power: 0,
+    },
+    attendees: [],
+  };
+
+  const savedData = localStorage.getItem(storageKey);
+
+  if (!savedData) {
+    return defaultData;
+  }
+
+  try {
+    const parsedData = JSON.parse(savedData);
+
+    if (
+      !parsedData ||
+      typeof parsedData.count !== "number" ||
+      !parsedData.teams ||
+      !Array.isArray(parsedData.attendees)
+    ) {
+      return defaultData;
+    }
+
+    return {
+      count: parsedData.count,
+      teams: {
+        water: Number(parsedData.teams.water) || 0,
+        zero: Number(parsedData.teams.zero) || 0,
+        power: Number(parsedData.teams.power) || 0,
+      },
+      attendees: normalizeAttendees(parsedData.attendees),
+    };
+  } catch (error) {
+    return defaultData;
+  }
+}
+
+function normalizeAttendees(savedAttendees) {
+  const normalizedAttendees = [];
+
+  for (let i = 0; i < savedAttendees.length; i++) {
+    const attendee = savedAttendees[i];
+    const team = attendee.team;
+
+    if (!attendee.name || !teamLabels[team]) {
+      continue;
+    }
+
+    normalizedAttendees.push({
+      name: attendee.name,
+      team: team,
+      teamName: teamLabels[team],
+    });
+  }
+
+  return normalizedAttendees;
+}
 
