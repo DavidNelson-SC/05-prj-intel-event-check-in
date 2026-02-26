@@ -17,6 +17,16 @@ const maxCount = 50;
 const storageKey = "intelEventCheckInState";
 let attendees = [];
 
+function toNumber(value) {
+  const parsedValue = Number(value);
+
+  if (Number.isNaN(parsedValue)) {
+    return 0;
+  }
+
+  return parsedValue;
+}
+
 function getTeamDisplayName(teamCode) {
   if (teamCode === "water") {
     return "Team Water Wise";
@@ -61,9 +71,9 @@ function saveState() {
   const checkInState = {
     count: count,
     teams: {
-      water: parseInt(waterCount.textContent),
-      zero: parseInt(zeroCount.textContent),
-      power: parseInt(powerCount.textContent),
+      water: toNumber(waterCount.textContent),
+      zero: toNumber(zeroCount.textContent),
+      power: toNumber(powerCount.textContent),
     },
     attendees: attendees,
   };
@@ -79,9 +89,9 @@ function setFormAvailability() {
 }
 
 function getWinningTeamName() {
-  const waterTotal = parseInt(waterCount.textContent);
-  const zeroTotal = parseInt(zeroCount.textContent);
-  const powerTotal = parseInt(powerCount.textContent);
+  const waterTotal = toNumber(waterCount.textContent);
+  const zeroTotal = toNumber(zeroCount.textContent);
+  const powerTotal = toNumber(powerCount.textContent);
 
   if (waterTotal >= zeroTotal && waterTotal >= powerTotal) {
     return "Team Water Wise";
@@ -102,20 +112,33 @@ function showGoalReachedMessage() {
 }
 
 function loadSavedState() {
-  const savedState = localStorage.getItem(storageKey);
+  try {
+    const savedState = localStorage.getItem(storageKey);
 
-  if (!savedState) {
-    updateProgress();
-    renderAttendeeList();
-    return;
+    if (!savedState) {
+      updateProgress();
+      renderAttendeeList();
+      return;
+    }
+
+    const parsedState = JSON.parse(savedState);
+    const savedTeams = parsedState.teams || {};
+
+    count = toNumber(parsedState.count);
+    waterCount.textContent = toNumber(savedTeams.water);
+    zeroCount.textContent = toNumber(savedTeams.zero);
+    powerCount.textContent = toNumber(savedTeams.power);
+    attendees = Array.isArray(parsedState.attendees)
+      ? parsedState.attendees
+      : [];
+  } catch (error) {
+    localStorage.removeItem(storageKey);
+    count = 0;
+    waterCount.textContent = 0;
+    zeroCount.textContent = 0;
+    powerCount.textContent = 0;
+    attendees = [];
   }
-
-  const parsedState = JSON.parse(savedState);
-  count = parsedState.count || 0;
-  waterCount.textContent = parsedState.teams.water || 0;
-  zeroCount.textContent = parsedState.teams.zero || 0;
-  powerCount.textContent = parsedState.teams.power || 0;
-  attendees = parsedState.attendees || [];
 
   updateProgress();
   renderAttendeeList();
@@ -159,7 +182,7 @@ form.addEventListener("submit", function (event) {
 
   // Update team counter
   const teamCounter = document.getElementById(team + "Count");
-  teamCounter.textContent = parseInt(teamCounter.textContent) + 1;
+  teamCounter.textContent = toNumber(teamCounter.textContent) + 1;
 
   attendees.push({
     name: name,
@@ -185,3 +208,4 @@ form.addEventListener("submit", function (event) {
 
   form.reset();
 });
+
