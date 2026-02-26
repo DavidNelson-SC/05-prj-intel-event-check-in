@@ -49,13 +49,16 @@ form.addEventListener("submit", function (event) {
   saveAttendanceData();
   renderAll();
 
-  //Show greeting and celebration when goal is reached
+  //Show personalized greeting after every check-in
+  let message = `✅ Welcome, ${name} from ${teamName}!`;
+
+  //Add celebration when goal is reached
   if (attendanceData.count >= maxCount) {
     const winningTeam = getWinningTeam();
-    greeting.textContent = `🎉 Goal reached! ${winningTeam.name} is leading with ${winningTeam.count} attendees.`;
-  } else {
-    greeting.textContent = `✅ Welcome, ${name} from ${teamName}!`;
+    message = `${message} 🎉 Goal reached! ${winningTeam.name} is leading with ${winningTeam.count} attendees.`;
   }
+
+  greeting.textContent = message;
 
   greeting.style.display = "block";
   greeting.classList.add("success-message");
@@ -196,4 +199,5 @@ function normalizeAttendees(savedAttendees) {
 
   return normalizedAttendees;
 }
+
 
